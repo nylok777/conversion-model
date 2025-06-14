@@ -1,25 +1,7 @@
 import numpy as np
 from optimizeModel import solve_odes, get_michaelis_menten_params
 from matplotlib import pyplot as plt
-
-class LdxKinetics():
-    def __init__(self):
-        self.ke = np.log(2) / 10
-        self.ka = 0.6691
-        self.ke_ldx = 0.9
-        self.f = 0.297
-        self.Vd = 195_000
-        self.Tmax = 3.78
-        self.Cmax = 69.3
-        self.auc = 1020
-        self.optimize_start = [35000, 30000]
-        self.Vmax = 0
-        self.Km = 0
-    
-    def set_michaelis_params(self):
-        result = get_result
-        self.Vmax = result.x[0]
-        self.Km = result.x[1]
+from kinetics import Kinetics
 
 def ldx_model(t, y, ka, ke, ke_ldx, f, Vmax, Km):
     ldx_gi, ldx_p, dex_p = y
@@ -28,57 +10,62 @@ def ldx_model(t, y, ka, ke, ke_ldx, f, Vmax, Km):
     
     ldx_gi_dt = -ka * ldx_gi
     ldx_p_dt = ka * ldx_gi - conv - ke_ldx * ldx_p
-    dex_p_dt = f* conv - (ke * dex_p)
+    dex_p_dt = f * conv - (ke * dex_p)
         
-    return [ldx_gi_dt, ldx_p_dt, dex_p_dt]
+    return (ldx_gi_dt, ldx_p_dt, dex_p_dt)
 
-def get_result(ldx_kinetics: LdxKinetics):
+def get_result_ldx(kinetics: Kinetics, model_func):
 
     result = get_michaelis_menten_params(
-        ldx_kinetics.optimize_start,
-        ldx_model,
+        kinetics.optimize_start,
+        model_func,
         (0, 72),
         (20_000, 70_000),
         (10_000, 60_000),
-        ldx_kinetics.Vd,
-        ldx_kinetics.ke,
-        ldx_kinetics.f,
+        kinetics.Vd,
+        kinetics.ke,
+        kinetics.ka,
+        kinetics.f,
         70*1000,
-        ldx_kinetics.Tmax,
-        ldx_kinetics.Cmax,
-        ldx_kinetics.auc,
-        ldx_kinetics.ke_ldx
+        kinetics.Tmax,
+        kinetics.Cmax,
+        kinetics.auc,
+        kinetics.ke_pro
     )
     return result
 
-def calculate_curve(ldx_kinetics: LdxKinetics, t_end: float, dose_mg: float, t_continue: float | None = None, y0 = None):
+def calculate_curve(
+        model_func, 
+        kinetics: Kinetics,
+        t_start: float,
+        t_end: float, 
+        dose_mg: float,         
+        y0 = None
+        ):
+    
     if y0 is None:
         y0 = [dose_mg*1000, 0, 0]
         
-    if t_continue is None:
-        t_span = (0, t_end)
-    else:
-        t_span = (t_continue, t_end)
+    t_span = (t_start, t_end)
+
     solution = solve_odes(
-        ldx_model, t_span, y0, 
-        ldx_kinetics.ka, 
-        ldx_kinetics.ke, 
-        ldx_kinetics.ke_ldx, 
-        ldx_kinetics.f, 
-        ldx_kinetics.Vmax, 
-        ldx_kinetics.Km)
+        model_func, t_span, y0, 
+        kinetics.ka, 
+        kinetics.ke, 
+        kinetics.ke_pro, 
+        kinetics.f, 
+        kinetics.Vmax, 
+        kinetics.Km)
     
     t = solution.t
     y = solution.y
     
-    Cdex_ng = (y[2] / ldx_kinetics.Vd) * 1000
+    Cdex_ng = (y[2] / kinetics.Vd) * 1000
 
     return (y, t, Cdex_ng)
 
 def draw_plasma_plot(t, dose_ng, user_dose):
     plt.plot(t, dose_ng)
-    #plt.axhline(cmax_target, color='gray', linestyle='--', label='Cmax target')
-    #plt.axvline(tmax_target, color='red', linestyle='--', label='Tmax target')
     plt.xlabel("Time (hours)")
     plt.ylabel("d-Amphetamine (ng/mL)")
     plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
@@ -88,15 +75,25 @@ def draw_plasma_plot(t, dose_ng, user_dose):
 def get_user_input():
     multiple_dose = float(input("multiple doses(yes/no [1/0]): "))
     if multiple_dose > 0:        
-        t_continue = float(input("time between doses in hours: "))        
+        t_continue = list(map(float, input("times between the doses in hours (separated by commas): ")
+                              .split(',')))       
     else:
         t_continue = None
     dose_mg = float(input("dose of LDX in mg: "))
-    t_end = int(input("end of curve timespan in hours: "))
+    t_end = float(input("end of curve timespan in hours: "))
 
     return (t_end, dose_mg, t_continue)
 
-def show_plot_to_user(ldx_kinetics: LdxKinetics):
-    inputs = get_user_input()
-    _, t, ng = calculate_curve(ldx_kinetics, *inputs)
-    draw_plasma_plot(t, ng, inputs[1])
+def show_plot_to_user(model_func, kinetics: Kinetics):
+    t_end, dose_mg, t_doses = get_user_input()
+
+    if t_doses is None:
+        _, t, ng = calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
+    else:
+        t_doses.append(t_end)
+        y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
+        for i in range(len(t_doses)-1):
+            y, t, ng = calculate_curve(model_func, kinetics, t_doses[i], t_doses[i]+t_doses[i+1], dose_mg,
+                                    y0=[dose_mg*1000, y[1][-1], y[2][-1]])
+
+    draw_plasma_plot(t, ng, dose_mg)
