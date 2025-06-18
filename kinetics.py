@@ -1,20 +1,11 @@
+from collections.abc import Sequence
 import numpy as np
 from scipy.optimize import root_scalar
 
 class Kinetics():
     
-    def __init__(
-            self,
-            t_half: float,            
-            f: float,
-            Vd: float,
-            Tmax: float,
-            Cmax: float,
-            auc: float,
-            optimize_start,
-            t_half_pro,
-            Tmax_pro
-    ):
+    def __init__(self, t_half: float, f: float, Vd: float, Tmax: float, Cmax: float, auc: float,
+                 t_half_pro: float, Tmax_pro: float):
         self.t_half = t_half
         self.t_half_pro = t_half_pro
         self.f = f
@@ -35,9 +26,14 @@ class Kinetics():
         self.ke = np.log(2) / t_half
         self.ke_pro = np.log(2) / t_half_pro
         self.ka = get_ka(self.ke, Tmax)
-        self.optimize_start = optimize_start
     
-    def set_michaelis_params(self, result_func, model_func):
-        result = result_func(self, model_func)
+    def get_michaelis_params(self, result_func, model_func, t_span: tuple, dose_ug: float,
+                             optimize_start: Sequence[float, float]):
+        result = result_func(self, model_func, t_span, dose_ug, optimize_start)
         self.Vmax = result.x[0]
         self.Km = result.x[1]
+        print(f"Vmax: {result.x[0]}\nKm: {result.x[1]}")
+
+    def set_michaelis_params(self, Vmax: float, Km: float):
+        self.Vmax = Vmax
+        self.Km = Km

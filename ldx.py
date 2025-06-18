@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 import numpy as np
-from optimizeModel import solve_odes, get_michaelis_menten_params
 from matplotlib import pyplot as plt
+from optimizeModel import solve_odes, optimize_michaelis_menten_kinetics
 from kinetics import Kinetics
 
 def ldx_model(t, y, ka, ke, ke_ldx, f, Vmax, Km):
@@ -14,19 +15,17 @@ def ldx_model(t, y, ka, ke, ke_ldx, f, Vmax, Km):
         
     return (ldx_gi_dt, ldx_p_dt, dex_p_dt)
 
-def get_result_ldx(kinetics: Kinetics, model_func):
-
-    result = get_michaelis_menten_params(
-        kinetics.optimize_start,
+def get_result_ldx(kinetics: Kinetics, model_func, t_span: tuple[float, float], dose_ug: float,
+                   optimize_start: Sequence[float, float]):
+    result = optimize_michaelis_menten_kinetics(
+        optimize_start,
         model_func,
-        (0, 72),
-        (20_000, 70_000),
-        (10_000, 60_000),
+        t_span,
         kinetics.Vd,
         kinetics.ke,
         kinetics.ka,
         kinetics.f,
-        70*1000,
+        dose_ug,
         kinetics.Tmax,
         kinetics.Cmax,
         kinetics.auc,
@@ -34,15 +33,8 @@ def get_result_ldx(kinetics: Kinetics, model_func):
     )
     return result
 
-def calculate_curve(
-        model_func, 
-        kinetics: Kinetics,
-        t_start: float,
-        t_end: float, 
-        dose_mg: float,         
-        y0 = None
-        ):
-    
+def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float, dose_mg: float,
+                    y0: Sequence[float] = None) -> tuple:
     if y0 is None:
         y0 = [dose_mg*1000, 0, 0]
         
@@ -64,36 +56,50 @@ def calculate_curve(
 
     return (y, t, Cdex_ng)
 
-def draw_plasma_plot(t, dose_ng, user_dose):
+def draw_plasma_plot(t, dose_ng, user_dose: float, x_left_lim: float = None, x_right_lim: float = None):
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
     plt.ylabel("d-Amphetamine (ng/mL)")
+    plt.minorticks_on()
+
+    if x_left_lim != None:
+        plt.xlim(left=x_left_lim)
+    if x_right_lim != None:
+        plt.xlim(right=x_right_lim)
+    else:
+        plt.xlim(right=t[-1]+t[-1]*0.01)
+
     plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
     plt.grid(True)
     plt.show()
 
-def get_user_input():
+def get_user_input() -> tuple:
     multiple_dose = float(input("multiple doses(yes/no [1/0]): "))
     if multiple_dose > 0:        
-        t_continue = list(map(float, input("times between the doses in hours (separated by commas): ")
+        t_doses = list(map(float, input("times between the doses in hours (separated by commas): ")
                               .split(',')))       
     else:
-        t_continue = None
+        t_doses = None
     dose_mg = float(input("dose of LDX in mg: "))
     t_end = float(input("end of curve timespan in hours: "))
 
-    return (t_end, dose_mg, t_continue)
+    return (t_end, dose_mg, t_doses)
 
-def show_plot_to_user(model_func, kinetics: Kinetics):
-    t_end, dose_mg, t_doses = get_user_input()
-
+def show_plot_to_user(model_func, kinetics: Kinetics, t_end: float, dose_mg: float, t_doses: None|list,
+                      x_left_lim: float = None, x_right_lim: float = None):
     if t_doses is None:
         _, t, ng = calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
     else:
         t_doses.append(t_end)
         y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
+        _, t_all, ng_all = y, t, ng
+        t_next = t_doses[0]
         for i in range(len(t_doses)-1):
-            y, t, ng = calculate_curve(model_func, kinetics, t_doses[i], t_doses[i]+t_doses[i+1], dose_mg,
+            y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+t_doses[i+1], dose_mg,
                                     y0=[dose_mg*1000, y[1][-1], y[2][-1]])
-
-    draw_plasma_plot(t, ng, dose_mg)
+            
+            t_next = t_next + t_doses[i+1]
+            t_all = np.concatenate([t_all, t], axis=None)
+            ng_all = np.concatenate([ng_all, ng], axis=None)
+    
+    draw_plasma_plot(t_all, ng_all, dose_mg, x_left_lim, x_right_lim)
