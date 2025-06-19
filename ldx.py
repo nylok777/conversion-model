@@ -56,7 +56,8 @@ def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float
 
     return (y, t, Cdex_ng)
 
-def draw_plasma_plot(t, dose_ng, user_dose: float, x_left_lim: float = None, x_right_lim: float = None):
+def draw_plasma_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_left_lim: float = None,
+                     x_right_lim: float = None):
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
     plt.ylabel("d-Amphetamine (ng/mL)")
@@ -64,11 +65,15 @@ def draw_plasma_plot(t, dose_ng, user_dose: float, x_left_lim: float = None, x_r
 
     if x_left_lim != None:
         plt.xlim(left=x_left_lim)
+    elif plot_tspan != None:
+        plt.xlim(left=t[-1]-plot_tspan)
+
     if x_right_lim != None:
         plt.xlim(right=x_right_lim)
     else:
         plt.xlim(right=t[-1]+t[-1]*0.01)
-
+    
+    
     plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
     plt.grid(True)
     plt.show()
@@ -85,8 +90,8 @@ def get_user_input() -> tuple:
 
     return (t_end, dose_mg, t_doses)
 
-def show_plot_to_user(model_func, kinetics: Kinetics, t_end: float, dose_mg: float, t_doses: None|list,
-                      x_left_lim: float = None, x_right_lim: float = None):
+def simulate(model_func, kinetics: Kinetics, t_end: float, dose_mg: float, t_doses: None|list,
+                      plot_tspan: float = None, x_left_lim: float = None, x_right_lim: float = None):
     if t_doses is None:
         _, t, ng = calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
     else:
@@ -101,5 +106,5 @@ def show_plot_to_user(model_func, kinetics: Kinetics, t_end: float, dose_mg: flo
             t_next = t_next + t_doses[i+1]
             t_all = np.concatenate([t_all, t], axis=None)
             ng_all = np.concatenate([ng_all, ng], axis=None)
-    
-    draw_plasma_plot(t_all, ng_all, dose_mg, x_left_lim, x_right_lim)
+
+    draw_plasma_plot(t_all, ng_all, dose_mg, plot_tspan, x_left_lim, x_right_lim)

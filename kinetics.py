@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+import os
 import numpy as np
 from scipy.optimize import root_scalar
 
@@ -29,11 +30,17 @@ class Kinetics():
     
     def get_michaelis_params(self, result_func, model_func, t_span: tuple, dose_ug: float,
                              optimize_start: Sequence[float, float]):
-        result = result_func(self, model_func, t_span, dose_ug, optimize_start)
-        self.Vmax = result.x[0]
-        self.Km = result.x[1]
-        print(f"Vmax: {result.x[0]}\nKm: {result.x[1]}")
-
-    def set_michaelis_params(self, Vmax: float, Km: float):
-        self.Vmax = Vmax
-        self.Km = Km
+        try:
+            f = open('params.txt')
+            results = f.read()
+            f.close()            
+            results = results.split(',')            
+            self.Vmax = float(results[0])
+            self.Km = float(results[1])
+        except FileNotFoundError:
+            result = result_func(self, model_func, t_span, dose_ug, optimize_start)
+            self.Vmax = result.x[0]
+            self.Km = result.x[1]
+            results = (result.x[0], result.x[1])
+            with open('params.txt', mode='x') as f:
+                f.write(str(results).strip('()'))
