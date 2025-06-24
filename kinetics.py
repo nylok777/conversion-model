@@ -4,7 +4,7 @@ import numpy as np
 from scipy.optimize import root_scalar
 
 class Kinetics():
-    def __init__(self, t_half: float, Vd: float, Tmax: float, Cmax: float, auc: float):
+    def __init__(self, t_half: float, Vd: float, Tmax: float, Cmax: float=None, auc: float=None):
         self.t_half = t_half
         self.Vd = Vd
         self.Tmax = Tmax
