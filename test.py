@@ -1,6 +1,6 @@
-from kinetics import KineticsMM, Kinetics
+from kinetics import KineticsMM, KineticsFO
 from ldx import ldx_model, get_result_ldx, test_plot, calculate_curve
-import first_order
+import firstOrder
 
 kinetics = KineticsMM(
     0.297,
@@ -17,6 +17,6 @@ kinetics.get_michaelis_params(get_result_ldx, ldx_model, (0, 96), 50_000, (10_00
 y, t, Cdex_ng = calculate_curve(ldx_model, kinetics, 0, 96, 50)
 test_plot(t, Cdex_ng, 50, kinetics.Tmax, kinetics.Cmax)
 
-kinetics_alp = Kinetics(11, 50_000, 0.1666, 4, 0)
-y_alp, t_alp, Calp_ng = first_order.calculate_curve(first_order.first_order_model, kinetics_alp, 0, 12, 0.25)
-first_order.test_plot(t_alp, Calp_ng, 0.25, kinetics_alp.Tmax, kinetics_alp.Cmax)
+kinetics_alp = KineticsFO(11, 50_000, 1.9, 33, 510)
+y_alp, t_alp, Calp_ng = firstOrder.calculate_curve(firstOrder.first_order_model, kinetics_alp, 0, 60, 2)
+firstOrder.test_plot(t_alp, Calp_ng, 2, kinetics_alp.Tmax, kinetics_alp.Cmax)

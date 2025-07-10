@@ -14,7 +14,7 @@ def first_order_model(t, y, ka, ke):
 
 def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float, dose_mg: float, y0: Sequence[float] = None):
     if y0 is None:
-        y0 = [dose_mg*1000, 0, 0]
+        y0 = [dose_mg*1000, 0]
         
     t_span = (t_start, t_end)
 
