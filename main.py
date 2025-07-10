@@ -14,6 +14,6 @@ kinetics = Kinetics(
 
 kinetics.get_michaelis_params(get_result_ldx, ldx_model, (0, 96), 50_000, (25_000, 20_000))
 
-full = [22, 28.84, 24.083, 23.684, 23.54, 24.116, 21.384, 24.6]
+full = [22, 28.84, 24.083, 23.684, 23.54, 24.116, 21.384, 24.6, 28.216, 22.25, 25.6, 23.83, 21.083, 23.083, 49, 27.734]
 
 simulate(ldx_model, kinetics, 14, 30, full, 24)

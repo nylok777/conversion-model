@@ -24,7 +24,7 @@ def get_result_ldx(kinetics: Kinetics, model_func, t_span: tuple[float, float], 
         kinetics.Vd,
         kinetics.ke,
         kinetics.ka,
-        kinetics.f,
+        kinetics.efficiency,
         dose_ug,
         kinetics.Tmax,
         kinetics.Cmax,
@@ -45,7 +45,7 @@ def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float
         kinetics.ka, 
         kinetics.ke, 
         kinetics.ke_pro, 
-        kinetics.f, 
+        kinetics.efficiency, 
         kinetics.Vmax, 
         kinetics.Km)
     

@@ -5,11 +5,11 @@ from scipy.optimize import root_scalar
 
 class Kinetics():
     
-    def __init__(self, t_half: float, f: float, Vd: float, Tmax: float, Cmax: float, auc: float,
+    def __init__(self, t_half: float, efficiency: float, Vd: float, Tmax: float, Cmax: float, auc: float,
                  t_half_pro: float, Tmax_pro: float):
         self.t_half = t_half
         self.t_half_pro = t_half_pro
-        self.f = f
+        self.efficiency = efficiency
         self.Vd = Vd
         self.Tmax = Tmax
         self.Tmax_pro = Tmax_pro
