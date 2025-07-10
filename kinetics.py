@@ -24,9 +24,9 @@ class Kinetics():
 
 class KineticsMM(Kinetics):
     
-    def __init__(self, f: float, t_half_pro: float, Tmax_pro: float, t_half: float, Vd: float, Tmax: float, Cmax: float, auc: float):
+    def __init__(self, efficiency: float, t_half_pro: float, Tmax_pro: float, t_half: float, Vd: float, Tmax: float, Cmax: float, auc: float):
         self.t_half_pro = t_half_pro
-        self.f = f
+        self.efficiency = efficiency
         self.Tmax_pro = Tmax_pro
         self.ke_pro = np.log(2) / t_half_pro
         super().__init__(t_half, Vd, Tmax, Cmax, auc)
