@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 import numpy as np
 from matplotlib import pyplot as plt
-from optimizeModel import solve_odes, optimize_michaelis_menten_kinetics
+from optimizeModel import solve_odes_michaelis, optimize_michaelis_menten_kinetics
 from kinetics import Kinetics
 
 def ldx_model(t, y, ka, ke, ke_ldx, f, Vmax, Km):
@@ -40,7 +40,7 @@ def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float
         
     t_span = (t_start, t_end)
 
-    solution = solve_odes(
+    solution = solve_odes_michaelis(
         model_func, t_span, y0, 
         kinetics.ka, 
         kinetics.ke, 
@@ -56,7 +56,7 @@ def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float
 
     return (y, t, Cdex_ng)
 
-def draw_plasma_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_left_lim: float = None,
+def draw_full_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_left_lim: float = None,
                      x_right_lim: float = None):
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
@@ -73,8 +73,27 @@ def draw_plasma_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_l
     else:
         plt.xlim(right=t[-1]+t[-1]*0.01)
     
-    
     plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
+    plt.grid(True)
+    plt.show()
+
+def plot_last_dose(y0, user_dose: float, plot_tspan: float, kinetics: Kinetics):
+    _, t, dose_ng = calculate_curve(ldx_model, kinetics, 0, plot_tspan, user_dose, y0)
+    plt.plot(t, dose_ng)
+    plt.xlabel("Time (hours)")
+    plt.ylabel("d-Amphetamine (ng/mL)")
+    plt.minorticks_on()
+    plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
+    plt.grid(True)
+    plt.show()
+
+def test_plot(t, Cdex_ng, dose: float, tmax_target: float, cmax_target: float):
+    plt.plot(t, Cdex_ng)
+    plt.xlabel("Time (hours)")
+    plt.ylabel("d-Amphetamine (ng/mL)")
+    plt.axhline(cmax_target, color='gray', linestyle='--', label='Cmax target')
+    plt.axvline(tmax_target, color='red', linestyle='--', label='Tmax target')
+    plt.title(f"Plasma d-Amphetamine after {dose} mg LDX")
     plt.grid(True)
     plt.show()
 
@@ -90,21 +109,21 @@ def get_user_input() -> tuple:
 
     return (t_end, dose_mg, t_doses)
 
-def simulate(model_func, kinetics: Kinetics, t_end: float, dose_mg: float, t_doses: None|list,
-                      plot_tspan: float = None, x_left_lim: float = None, x_right_lim: float = None):
+def simulate(model_func, kinetics: Kinetics, t_end: float, dose_mg: float, t_doses: None|list):
     if t_doses is None:
         _, t, ng = calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
     else:
         t_doses.append(t_end)
         y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
-        _, t_all, ng_all = y, t, ng
+        y_all, t_all, ng_all = y, t, ng
         t_next = t_doses[0]
         for i in range(len(t_doses)-1):
             y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+t_doses[i+1], dose_mg,
                                     y0=[dose_mg*1000, y[1][-1], y[2][-1]])
             
             t_next = t_next + t_doses[i+1]
+            y_all = np.concatenate([y_all, y])
             t_all = np.concatenate([t_all, t], axis=None)
             ng_all = np.concatenate([ng_all, ng], axis=None)
 
-    draw_plasma_plot(t_all, ng_all, dose_mg, plot_tspan, x_left_lim, x_right_lim)
+    return (y_all, t_all, ng_all)
