@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from sklearn.utils import Bunch
 import numpy as np
 from scipy.optimize import OptimizeResult
 from scipy.integrate import solve_ivp
@@ -16,13 +17,23 @@ cmax: max concentration
 """
 
 
-def objective_michaelis(params, model, t_span: tuple[float, float], V: float, ka: float, ke: float, ke_pro: float, f: float,
-               dose_ug: float, tmax_target: float, cmax_target: float, auc_target: float, wt: float=10.0, wc: float=1.0, wa: float=1.0, eps=1e-6) -> float:
+def objective_michaelis(
+        params: tuple[float, float],
+        model: callable,
+        t_span: Sequence[float, float],
+        V: float,
+        ka: float,
+        ke: float,
+        dose_ug: float,
+        tmax_target: float, cmax_target: float, auc_target: float,
+        wt: float=10.0, wc: float=1.0, wa: float=1.0, eps=1e-6,
+        *args
+    ) -> float:
     
     Vmax, Km = params
     y0 = (dose_ug, 0, 0)
     
-    solution = solve_odes_michaelis(model, t_span, y0, ka, ke, ke_pro, f, Vmax, Km)
+    solution = solve_odes_michaelis(model, t_span, y0, ka, ke, Vmax, Km, args)
     t = solution.t
 
     active_p = solution.y[2]
@@ -40,38 +51,58 @@ def objective_michaelis(params, model, t_span: tuple[float, float], V: float, ka
 
     return wt * err_t + wc * err_c + wa * err_a
 
-def solve_odes_michaelis(model, t_span: tuple[float, float], y0: Sequence[float, float, float], ka: float, ke: float,
-               ke_pro: float, f: float, Vmax: float, Km: float):
+def solve_odes_michaelis(
+        model: callable,
+        t_span: Sequence[float, float],
+        y0: Sequence[float, float, float],
+        ka: float, ke: float,
+        Vmax: float, Km: float, *args
+    ) -> Bunch:
     t_eval = np.linspace(*t_span, 10_000)
-    solution = solve_ivp(
-        fun = model,
-        t_span = t_span,
-        y0 = y0,
-        t_eval = t_eval,
-        args = (ka, ke, ke_pro, f, Vmax, Km)
-    )
-    
-    return solution
 
-def solve_odes_fo(model, t_span: tuple[float, float], y0: Sequence[float, float], ka: float, ke: float):
-    t_eval = np.linspace(*t_span, 10_000)
     solution = solve_ivp(
         fun=model,
         t_span=t_span,
         y0=y0,
         t_eval=t_eval,
-        args=(ka, ke)
+        args=(ka, ke, Vmax, Km, args)
     )
     
     return solution
 
-def optimize_michaelis_menten_kinetics(initial_guess: Sequence[float, float], model, t_span: tuple, V: float,
-                                       ke: float, ka: float,f: float, dose_ug: float,tmax_target: float, cmax_target: float, auc_target: float,
-                                       ke_pro: float) -> OptimizeResult:
+def solve_odes_fo(
+        model: callable,
+        t_span: Sequence[float, float],
+        y0: Sequence[float, float],
+        ka: float, ke: float,
+        bioaval: float
+    ) -> Bunch:
+    t_eval = np.linspace(*t_span, 10_000)
+
+    solution = solve_ivp(
+        fun=model,
+        t_span=t_span,
+        y0=y0,
+        t_eval=t_eval,
+        args=(ka, ke, bioaval)
+    )
+    
+    return solution
+
+def optimize_michaelis_menten_kinetics(
+        initial_guess: Sequence[float, float],
+        model: callable,
+        t_span: Sequence[float, float],
+        V: float,
+        ke: float, ka: float,
+        dose_ug: float,
+        tmax_target: float, cmax_target: float, auc_target:float,
+        *args) -> OptimizeResult:
+    
     result = minimize(
         fun = objective_michaelis,
         x0 = initial_guess,
-        args = (model, t_span, V, ka, ke, ke_pro, f, dose_ug, tmax_target, cmax_target, auc_target),
+        args = (model, t_span, V, ka, ke, dose_ug, tmax_target, cmax_target, auc_target, args),
         method = 'Nelder-Mead'
     )
 

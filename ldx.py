@@ -2,20 +2,22 @@ from collections.abc import Sequence
 import numpy as np
 from matplotlib import pyplot as plt
 from optimizeModel import solve_odes_michaelis, optimize_michaelis_menten_kinetics
-from kinetics import Kinetics
+from kinetics import KineticsFromProDrug
 
-def ldx_model(t, y, ka, ke, ke_ldx, f, Vmax, Km):
+def ldx_model(t, y, ka, ke, Vmax, Km, args):
     ldx_gi, ldx_p, dex_p = y
+
+    efficiency, ke_ldx = args
 
     conv = (Vmax * ldx_p) / (Km + ldx_p)
     
     ldx_gi_dt = -ka * ldx_gi
     ldx_p_dt = ka * ldx_gi - conv - ke_ldx * ldx_p
-    dex_p_dt = f * conv - (ke * dex_p)
+    dex_p_dt = efficiency * conv - (ke * dex_p)
         
     return (ldx_gi_dt, ldx_p_dt, dex_p_dt)
 
-def get_result_ldx(kinetics: Kinetics, model_func, t_span: tuple[float, float], dose_ug: float,
+def optimize_ldx(kinetics: KineticsFromProDrug, model_func, t_span: tuple[float, float], dose_ug: float,
                    optimize_start: Sequence[float, float]):
     result = optimize_michaelis_menten_kinetics(
         optimize_start,
@@ -23,17 +25,17 @@ def get_result_ldx(kinetics: Kinetics, model_func, t_span: tuple[float, float], 
         t_span,
         kinetics.Vd,
         kinetics.ke,
-        kinetics.ka,
-        kinetics.efficiency,
+        kinetics.ka,        
         dose_ug,
         kinetics.Tmax,
         kinetics.Cmax,
         kinetics.auc,
+        kinetics.efficiency,
         kinetics.ke_pro
     )
     return result
 
-def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float, dose_mg: float,
+def calculate_curve(model_func, kinetics: KineticsFromProDrug, t_start: float, t_end: float, dose_mg: float,
                     y0: Sequence[float] = None) -> tuple:
     if y0 is None:
         y0 = [dose_mg*1000, 0, 0]
@@ -44,10 +46,9 @@ def calculate_curve(model_func, kinetics: Kinetics, t_start: float, t_end: float
         model_func, t_span, y0, 
         kinetics.ka, 
         kinetics.ke, 
-        kinetics.ke_pro, 
-        kinetics.efficiency, 
         kinetics.Vmax, 
-        kinetics.Km)
+        kinetics.Km,
+        kinetics.efficiency, kinetics.ke_pro)
     
     t = solution.t
     y = solution.y
@@ -77,7 +78,7 @@ def draw_full_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_lef
     plt.grid(True)
     plt.show()
 
-def plot_last_dose(y0, user_dose: float, plot_tspan: float, kinetics: Kinetics):
+def plot_last_dose(y0, user_dose: float, plot_tspan: float, kinetics: KineticsFromProDrug):
     _, t, dose_ng = calculate_curve(ldx_model, kinetics, 0, plot_tspan, user_dose, y0)
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
@@ -109,9 +110,9 @@ def get_user_input() -> tuple:
 
     return (t_end, dose_mg, t_doses)
 
-def simulate(model_func, kinetics: Kinetics, t_end: float, dose_mg: float, t_doses: None|list):
+def simulate(model_func, kinetics: KineticsFromProDrug, t_end: float, dose_mg: float, t_doses: None|list):
     if t_doses is None:
-        _, t, ng = calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
+        return calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
     else:
         t_doses.append(t_end)
         y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
