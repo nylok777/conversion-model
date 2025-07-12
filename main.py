@@ -1,6 +1,6 @@
 def ldx_plot():
     from kinetics import KineticsFromProDrug
-    from ldx import ldx_model, optimize_ldx, simulate, plot_last_dose
+    from ldx import ldx_model, optimize_ldx, simulate, plot_last_dose, draw_full_plot
 
     kinetics = KineticsFromProDrug(
         0.297,
@@ -9,6 +9,7 @@ def ldx_plot():
         11.3,
         195_000,
         4,
+        1,
         44.6,
         763.1
     )
@@ -17,10 +18,15 @@ def ldx_plot():
 
     full = [22, 28.84, 24.083, 23.684, 23.54, 24.116, 21.384, 24.6, 28.216, 22.25, 25.6, 23.83, 21.083, 23.083, 49, 27.734]
 
-    results = simulate(ldx_model, kinetics, full[-1], 30, full[:-2])
-    y = results[0]
-    y0 = [30_000, y[-2][-1], y[-1][-1]]
-    plot_last_dose(y0, 30, 10, kinetics)
+    results = simulate(ldx_model, kinetics, 24, 50, [21.5])
+
+    y, t, conc_ng = results
+
+    y0 = [50_000, y[-2][-1], y[-1][-1]]
+
+    draw_full_plot(t, conc_ng, 50)
+    
+    plot_last_dose(y0, 50, 24, kinetics)
 
 def flvx_plot():
     from kinetics import KineticsFO
@@ -38,4 +44,4 @@ def flvx_plot():
     plot_last_dose(first_order_model, 50, 24, flvx, "Fluvoxamine")
 
 if __name__ == '__main__':
-    flvx_plot()
+    ldx_plot()

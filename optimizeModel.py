@@ -26,14 +26,14 @@ def objective_michaelis(
         ke: float,
         dose_ug: float,
         tmax_target: float, cmax_target: float, auc_target: float,
+        args,
         wt: float=10.0, wc: float=1.0, wa: float=1.0, eps=1e-6,
-        *args
     ) -> float:
     
     Vmax, Km = params
     y0 = (dose_ug, 0, 0)
     
-    solution = solve_odes_michaelis(model, t_span, y0, ka, ke, Vmax, Km, args)
+    solution = solve_odes_michaelis(model, t_span, y0, ka, ke, Vmax, Km, *args)
     t = solution.t
 
     active_p = solution.y[2]
@@ -97,8 +97,11 @@ def optimize_michaelis_menten_kinetics(
         ke: float, ka: float,
         dose_ug: float,
         tmax_target: float, cmax_target: float, auc_target:float,
-        *args) -> OptimizeResult:
+        *args
+    ) -> OptimizeResult:
     
+    #efficiency, ke_pro = args
+
     result = minimize(
         fun = objective_michaelis,
         x0 = initial_guess,
