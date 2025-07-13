@@ -18,7 +18,7 @@ def ldx_plot():
 
     full = [22, 28.84, 24.083, 23.684, 23.54, 24.116, 21.384, 24.6, 28.216, 22.25, 25.6, 23.83, 21.083, 23.083, 49, 27.734]
 
-    results = simulate(ldx_model, kinetics, 24, 50, [21.5])
+    results = simulate(ldx_model, kinetics, 100, 50, [21.5, 28.333])
 
     y, t, conc_ng = results
 

@@ -36,19 +36,20 @@ class KineticsMM(Kinetics):
     def get_michaelis_params(self, result_func: callable, model_func: callable, t_span: Sequence[float, float], dose_ug: float,
                              optimize_start: Sequence[float, float]):
         try:
-            f = open('params.txt')
-            results = f.read()
-            f.close()            
-            results = results.split(',')            
-            self.Vmax = float(results[0])
-            self.Km = float(results[1])
+            # f = open('params.txt')
+            # results = f.read()
+            # f.close()            
+            
+            results = np.load('params.npy')
+
+            self.Vmax = results[0]
+            self.Km = results[1]
         except FileNotFoundError:
             result = result_func(self, model_func, t_span, dose_ug, optimize_start)
             self.Vmax = result.x[0]
             self.Km = result.x[1]
-            results = (result.x[0], result.x[1])
-            with open('params.txt', mode='x') as f:
-                f.write(str(results).strip('()'))
+            results = np.array([result.x[0], result.x[1]])
+            np.save('params', results)            
 
 class KineticsFromProDrug(KineticsMM):
     def __init__(
