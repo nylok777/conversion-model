@@ -1,18 +1,23 @@
+from collections.abc import Sequence
+import ast
+
 def get_user_input(substance: str) -> tuple:
-    multiple_dose = bool(input("multiple doses(yes/no [True/False]): "))
+    mult_dose_input = input("multiple doses(y/n): ")
+    multiple_dose = True if mult_dose_input == 'y' else False
     if multiple_dose:    
         t_doses = list(map(float, input("times between the doses in hours (separated by commas): ")
                               .split(',')))       
     else:
         t_doses = None
-    dose_mg = float(input(f"dose of {substance} in mg: "))
+    doses_mg = input(f"doses of {substance} in mg (if different amounts seperate by comma): ")
+    doses_mg = ast.literal_eval(doses_mg)
     t_end = float(input("length of simulation in hours: "))
 
-    return (t_end, dose_mg, t_doses, multiple_dose)
+    return (t_end, doses_mg, t_doses, multiple_dose)
 
 def ldx_plot():
     from kinetics import KineticsFromProDrug
-    from ldx import ldx_model, optimize_ldx, simulate, plot_last_dose, draw_full_plot
+    from ldx import ldx_model, optimize_ldx, simulate, simulate_dif_doses, plot_last_dose, draw_full_plot
 
     kinetics = KineticsFromProDrug(
         0.297,
@@ -28,25 +33,26 @@ def ldx_plot():
 
     kinetics.get_michaelis_params(optimize_ldx, ldx_model, (0, 96), 50_000, (25_000, 20_000))
 
-    sim_length, dose, times_list, multiple_dose = get_user_input("LDX")
+    sim_length, doses, times_list, multiple_dose = get_user_input("LDX")
     
     if multiple_dose:
         last_dose = input("plot only last dose [y/n]: ")
-        if last_dose.lower() == 'y':
-            sim_length = 24
-            results = simulate(ldx_model, kinetics, times_list[-1], dose, times_list[:-1])
+
+        if last_dose == 'y':
+            sim_length = 24            
+            results = simulate(ldx_model, kinetics, times_list[-1], doses, times_list[:-1])
             y, t, conc_ng = results
-            y0 = [50_000, y[1][-1], y[2][-1]]
-            plot_last_dose(y0, dose, sim_length, kinetics)
+            y0 = [doses*1000, y[1][-1], y[2][-1]]
+            plot_last_dose(y0, doses, sim_length, kinetics)
         else:
-            results = simulate(ldx_model, kinetics, sim_length, dose, times_list)
+            results = simulate(ldx_model, kinetics, sim_length, doses, times_list)
             y, t, conc_ng = results
-            draw_full_plot(t, conc_ng, dose)
+            draw_full_plot(t, conc_ng, doses)
 
     else:
-        results = simulate(ldx_model, kinetics, sim_length, dose, times_list)
+        results = simulate(ldx_model, kinetics, sim_length, doses, times_list)
         y, t, conc_ng = results
-        draw_full_plot(t, conc_ng, dose)    
+        draw_full_plot(t, conc_ng, doses)    
 
 def flvx_plot():
     from kinetics import KineticsFO

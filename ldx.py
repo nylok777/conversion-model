@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from collections import deque
 import numpy as np
 from matplotlib import pyplot as plt
 from optimizeModel import solve_odes_michaelis, optimize_michaelis_menten_kinetics
@@ -57,23 +58,61 @@ def calculate_curve(model_func, kinetics: KineticsFromProDrug, t_start: float, t
 
     return (y, t, Cdex_ng)
 
-def simulate(model_func, kinetics: KineticsFromProDrug, t_end: float, dose_mg: float, t_doses: None|list):
-    if t_doses is None:
-        return calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
+def simulate(model_func: callable, kinetics: KineticsFromProDrug, t_end: float, doses_mg: float | tuple, times_btwn_doses: None | list):
+    if times_btwn_doses is None:
+        return calculate_curve(model_func, kinetics, 0, t_end, doses_mg)
     else:
-        t_doses.append(t_end)
-        y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
-        y_all, t_all, ng_all = y, t, ng
-        t_next = t_doses[0]
-        for i in range(len(t_doses)-1):
-            y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+t_doses[i+1], dose_mg,
-                                    y0=[dose_mg*1000, y[1][-1], y[2][-1]])
-            
-            t_next = t_next + t_doses[i+1]
-            y_all = np.concatenate([y_all, y])
-            t_all = np.concatenate([t_all, t], axis=None)
-            ng_all = np.concatenate([ng_all, ng], axis=None)
+        if type(doses_mg) is tuple:
+            return simulate_dif_doses(model_func, kinetics, t_end, doses_mg, times_btwn_doses)
+        else:
+            return simulate_mult_doses(model_func, kinetics, t_end, doses_mg, times_btwn_doses)
 
+def simulate_mult_doses(model_func: callable, kinetics: KineticsFromProDrug, t_end: float, dose_mg: float, times_btwn_doses: list):
+    times_btwn_doses.append(t_end)
+    y, t, ng = calculate_curve(model_func, kinetics, 0, times_btwn_doses[0], dose_mg)
+    y_all, t_all, ng_all = y, t, ng
+    t_next = times_btwn_doses[0]
+    for i in range(len(times_btwn_doses)-1):
+
+        dose_ug = dose_mg*1000
+        y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+times_btwn_doses[i+1], dose_mg,
+                                y0=[y[0][-1]+dose_ug, y[1][-1], y[2][-1]])
+        
+        t_next = t_next + times_btwn_doses[i+1]
+        y_all = np.concatenate([y_all, y])
+        t_all = np.concatenate([t_all, t], axis=None)
+        ng_all = np.concatenate([ng_all, ng], axis=None)
+    
+    return (y_all, t_all, ng_all)
+
+def simulate_dif_doses(model_func: callable, kinetics: KineticsFromProDrug, t_end: float, doses: list, times_btwn_doses: list):
+    times_btwn_doses.append(t_end)
+
+    doses_que = deque(doses)
+
+    dose = doses_que.popleft()
+
+    y, t, ng = calculate_curve(model_func, kinetics, 0, times_btwn_doses[0], dose)
+    y_all, t_all, ng_all = y, t, ng
+
+    t_next = times_btwn_doses[0]
+
+    for i in range(len(times_btwn_doses)-1):
+
+        try:
+            dose = doses_que.popleft()
+        except IndexError:
+            pass
+        
+        dose_ug = dose*1000
+        y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+times_btwn_doses[i+1], dose, y0=[y[0][-1]+dose_ug, y[1][-1], y[2][-1]] )
+
+        t_next = t_next + times_btwn_doses[i+1]
+
+        y_all = np.concatenate([y_all, y])
+        t_all = np.concatenate([t_all, t], axis=None)
+        ng_all = np.concatenate([ng_all, ng], axis=None)
+    
     return (y_all, t_all, ng_all)
 
 def draw_full_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_left_lim: float = None,
@@ -81,7 +120,8 @@ def draw_full_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_lef
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
     plt.ylabel("d-Amphetamine (ng/mL)")
-
+    plt.xticks(np.arange(plot_tspan+1))
+    
     if x_left_lim != None:
         plt.xlim(left=x_left_lim)
     elif plot_tspan != None:
