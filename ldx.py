@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from collections import deque
 import numpy as np
-from matplotlib import pyplot as plt
 from optimizeModel import solve_odes_michaelis, optimize_michaelis_menten_kinetics
 from kinetics import KineticsFromProDrug
 
@@ -114,44 +113,3 @@ def simulate_dif_doses(model_func: callable, kinetics: KineticsFromProDrug, t_en
         ng_all = np.concatenate([ng_all, ng], axis=None)
     
     return (y_all, t_all, ng_all)
-
-def draw_full_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_left_lim: float = None,
-                     x_right_lim: float = None):
-    plt.plot(t, dose_ng)
-    plt.xlabel("Time (hours)")
-    plt.ylabel("d-Amphetamine (ng/mL)")
-    plt.xticks(np.arange(plot_tspan+1))
-    
-    if x_left_lim != None:
-        plt.xlim(left=x_left_lim)
-    elif plot_tspan != None:
-        plt.xlim(left=t[-1]-plot_tspan)
-
-    if x_right_lim != None:
-        plt.xlim(right=x_right_lim)
-    else:
-        plt.xlim(right=t[-1]+t[-1]*0.01)
-    
-    plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
-    plt.grid(True)
-    plt.show()
-
-def plot_last_dose(y0, user_dose: float, plot_tspan: float, kinetics: KineticsFromProDrug):
-    _, t, dose_ng = calculate_curve(ldx_model, kinetics, 0, plot_tspan, user_dose, y0)
-    plt.plot(t, dose_ng)
-    plt.xlabel("Time (hours)")
-    plt.ylabel("d-Amphetamine (ng/mL)")
-    plt.xticks(np.arange(plot_tspan+1))
-    plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
-    plt.grid(True)
-    plt.show()
-
-def test_plot(t, Cdex_ng, dose: float, tmax_target: float, cmax_target: float):
-    plt.plot(t, Cdex_ng)
-    plt.xlabel("Time (hours)")
-    plt.ylabel("d-Amphetamine (ng/mL)")
-    plt.axhline(cmax_target, color='gray', linestyle='--', label='Cmax target')
-    plt.axvline(tmax_target, color='red', linestyle='--', label='Tmax target')
-    plt.title(f"Plasma d-Amphetamine after {dose} mg LDX")
-    plt.grid(True)
-    plt.show()
