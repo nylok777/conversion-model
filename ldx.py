@@ -57,12 +57,30 @@ def calculate_curve(model_func, kinetics: KineticsFromProDrug, t_start: float, t
 
     return (y, t, Cdex_ng)
 
+def simulate(model_func, kinetics: KineticsFromProDrug, t_end: float, dose_mg: float, t_doses: None|list):
+    if t_doses is None:
+        return calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
+    else:
+        t_doses.append(t_end)
+        y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
+        y_all, t_all, ng_all = y, t, ng
+        t_next = t_doses[0]
+        for i in range(len(t_doses)-1):
+            y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+t_doses[i+1], dose_mg,
+                                    y0=[dose_mg*1000, y[1][-1], y[2][-1]])
+            
+            t_next = t_next + t_doses[i+1]
+            y_all = np.concatenate([y_all, y])
+            t_all = np.concatenate([t_all, t], axis=None)
+            ng_all = np.concatenate([ng_all, ng], axis=None)
+
+    return (y_all, t_all, ng_all)
+
 def draw_full_plot(t, dose_ng, user_dose: float, plot_tspan: float = None, x_left_lim: float = None,
                      x_right_lim: float = None):
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
     plt.ylabel("d-Amphetamine (ng/mL)")
-    plt.minorticks_on()
 
     if x_left_lim != None:
         plt.xlim(left=x_left_lim)
@@ -83,7 +101,7 @@ def plot_last_dose(y0, user_dose: float, plot_tspan: float, kinetics: KineticsFr
     plt.plot(t, dose_ng)
     plt.xlabel("Time (hours)")
     plt.ylabel("d-Amphetamine (ng/mL)")
-    plt.minorticks_on()
+    plt.xticks(np.arange(plot_tspan+1))
     plt.title(f"Plasma d-Amphetamine after {user_dose} mg LDX")
     plt.grid(True)
     plt.show()
@@ -97,22 +115,3 @@ def test_plot(t, Cdex_ng, dose: float, tmax_target: float, cmax_target: float):
     plt.title(f"Plasma d-Amphetamine after {dose} mg LDX")
     plt.grid(True)
     plt.show()
-
-def simulate(model_func, kinetics: KineticsFromProDrug, t_end: float, dose_mg: float, t_doses: None|list):
-    if t_doses is None:
-        return calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
-    else:
-        t_doses.append(t_end)
-        y, t, ng = calculate_curve(model_func, kinetics, 0, t_doses[0], dose_mg)
-        y_all, t_all, ng_all = y, t, ng
-        t_next = t_doses[0]
-        for i in range(len(t_doses)-1):
-            y, t, ng = calculate_curve(model_func, kinetics, t_next, t_next+t_doses[i+1], dose_mg,
-                                    y0=[dose_mg*1000, y[1][-1], y[2][-1]])
-            
-            t_next = t_next + t_doses[i+1]
-            y_all = np.concatenate([y_all, y])
-            t_all = np.concatenate([t_all, t], axis=None)
-            ng_all = np.concatenate([ng_all, ng], axis=None)
-
-    return (y_all, t_all, ng_all)
