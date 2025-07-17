@@ -98,18 +98,6 @@ def test_plot(t, Cdex_ng, dose: float, tmax_target: float, cmax_target: float):
     plt.grid(True)
     plt.show()
 
-def get_user_input() -> tuple:
-    multiple_dose = float(input("multiple doses(yes/no [1/0]): "))
-    if multiple_dose > 0:        
-        t_doses = list(map(float, input("times between the doses in hours (separated by commas): ")
-                              .split(',')))       
-    else:
-        t_doses = None
-    dose_mg = float(input("dose of LDX in mg: "))
-    t_end = float(input("end of curve timespan in hours: "))
-
-    return (t_end, dose_mg, t_doses)
-
 def simulate(model_func, kinetics: KineticsFromProDrug, t_end: float, dose_mg: float, t_doses: None|list):
     if t_doses is None:
         return calculate_curve(model_func, kinetics, 0, t_end, dose_mg)
