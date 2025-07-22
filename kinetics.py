@@ -6,13 +6,12 @@ from scipy.optimize import root_scalar
 
 
 class Kinetics(metaclass=ABCMeta):
-    def __init__(self, t_half: float, Vd: float, Tmax: float, bioaval: float, Cmax: float=None, auc: float=None):
+    def __init__(self, t_half: float, Vd: float, Tmax: float, Cmax: float=None, auc: float=None):
         self.t_half = t_half
         self.Vd = Vd
         self.Tmax = Tmax
         self.Cmax = Cmax
         self.auc = auc
-        self.bioaval = bioaval
         self.ke = np.log(2) / t_half
 
         def get_ka(ke, tmax):
@@ -26,20 +25,16 @@ class Kinetics(metaclass=ABCMeta):
         self.ka = get_ka(self.ke, Tmax)
 
 class KineticsFO(Kinetics):
-    def __init__(self, t_half, Vd, Tmax, bioaval, Cmax = None, auc = None):
-        super().__init__(t_half, Vd, Tmax, bioaval, Cmax, auc)
+    def __init__(self, t_half, Vd, Tmax, Cmax = None, auc = None):
+        super().__init__(t_half, Vd, Tmax, Cmax, auc)
 
 class KineticsMM(Kinetics):
-    def __init__(self, t_half, Vd, Tmax, bioaval, Cmax = None, auc = None):
-        super().__init__(t_half, Vd, Tmax, bioaval, Cmax, auc)
+    def __init__(self, t_half, Vd, Tmax, Cmax = None, auc = None):
+        super().__init__(t_half, Vd, Tmax, Cmax, auc)
 
     def get_michaelis_params(self, result_func: callable, model_func: callable, t_span: Sequence[float, float], dose_ug: float,
                              optimize_start: Sequence[float, float]):
         try:
-            # f = open('params.txt')
-            # results = f.read()
-            # f.close()            
-            
             results = np.load('params.npy')
 
             self.Vmax = results[0]
@@ -60,11 +55,10 @@ class KineticsFromProDrug(KineticsMM):
             t_half: float,
             Vd: float,
             Tmax: float,
-            bioaval: float,
             Cmax: float,
             auc: float
         ):
-        super().__init__(t_half, Vd, Tmax, bioaval, Cmax, auc)
+        super().__init__(t_half, Vd, Tmax, Cmax, auc)
         
         self.t_half_pro = t_half_pro
         self.efficiency = efficiency

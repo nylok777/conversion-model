@@ -1,6 +1,8 @@
 from abc import ABCMeta
 from abc import abstractmethod
 
+#wip
+
 class Enzyme(metaclass=ABCMeta):
     inhibition_rate: float
     inhibited: bool

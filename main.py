@@ -22,6 +22,11 @@ def ldx_plot():
 
     substance = {'active': 'd-Amphetamine', 'prodrug': 'LDX'}
 
+    """
+    Data:
+    Ermer, J.C., Pennick, M. & Frick, G. Lisdexamfetamine Dimesylate: Prodrug Delivery, Amphetamine Exposure and Duration of Efficacy. Clin Drug Investig 36, 341–356 (2016). https://doi.org/10.1007/s40261-015-0354-y
+    """
+
     kinetics = KineticsFromProDrug(
         0.297,
         0.9,
@@ -29,7 +34,6 @@ def ldx_plot():
         11.3,
         195_000,
         4,
-        1,
         44.6,
         763.1
     )
@@ -72,7 +76,6 @@ def flvx_plot():
         t_half=12.5,
         Vd=25_000,
         Tmax=6,
-        bioaval=0.53,
         Cmax=41.88,
         auc=959.33
     )
