@@ -143,7 +143,8 @@ class Ldx(KineticsFromProDrug):
         doses_que = deque(doses)
         t_next = 0
         y = [[0], [0], [0]]
-        y_all = t_all = ng_all = []
+        t_all = ng_all = []
+        y_all = [[0]]
 
         if len(doses_que) < 2:
             dose_mg = doses_que.popleft()
@@ -166,7 +167,7 @@ class Ldx(KineticsFromProDrug):
             )
 
             t_next = t_next + time
-            y_all = np.concatenate([y_all, y])
+            y_all = np.concatenate([y_all, y], axis=None)
             t_all = np.concatenate([t_all, t], axis=None)
             ng_all = np.concatenate([ng_all, ng], axis=None)
 
